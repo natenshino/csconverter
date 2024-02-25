@@ -39,7 +39,17 @@ private:
 	std::map<std::string, IConvertableValue*> keyValue;
 public:
 	ConvertableStruct() {};
-	virtual ~ConvertableStruct() {};
+	virtual ~ConvertableStruct() 
+	{
+		for (auto& [_, value] : keyValue)
+		{
+			if (value)
+			{
+				delete value;
+				value = nullptr;
+			}
+		}
+	};
 
 	void convertLineSaveToObject(const std::string& aLineSave)
 	{

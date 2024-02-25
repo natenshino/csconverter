@@ -155,7 +155,6 @@ struct ValueConverter<BoolType, CS::TypeHelper::isSame<BoolType, bool>> : public
 template<typename EnumType>
 struct ValueConverter<EnumType, CS::TypeHelper::isEnum<EnumType>> : public IValueConverter
 {
-private:
 	const std::string& type() override { return CSTypeDefines::csFloatingType; }
 
 	EnumType cast(const std::string& aValue)
@@ -186,4 +185,86 @@ private:
 	std::string toTyped(EnumType aValue) { return CS::TypeHelper::typifyValue(type(), toString(aValue)); }
 };
 
+// @ VECTOR CONVERTER @ 
+template<typename VectorType>
+struct ValueConverter<VectorType, CS::TypeHelper::isSame<VectorType, std::vector<typename VectorType::value_type>>> : public IValueConverter
+{
+	const std::string& type() override { return CSTypeDefines::csVectorType; }
+
+	VectorType cast(const std::string& aValue)
+	{
+		VectorType casteValue{};
+		
+		auto splittedValues = CS::DataHelper::splitString(aValue, CSTypeDefines::csContainerValuesDelimiter);
+		if (!splittedValues.empty())
+		{
+			ValueConverter<VectorType::value_type> valueConverter;
+			for (auto& value : splittedValues)
+			{
+				casteValue.push_back(valueConverter.cast(value));
+			}
+		}
+
+		return casteValue;
+	}
+
+	VectorType castTyped(const std::string& aValue)
+	{
+		VectorType casteValue{};
+
+		auto splittedValues = CS::DataHelper::splitString(aValue, CSTypeDefines::csTypeDelimiter);
+		if (splittedValues.size() == 3)
+		{
+			const auto& vectorType = splittedValues[0];
+			const auto& innerType = splittedValues[1];
+			const auto& vectorValues = splittedValues[2];
+
+			if (typeOf(vectorType))
+			{
+				ValueConverter<VectorType::value_type> valueConverter;
+				if (!valueConverter.typeOf(innerType))
+				{
+					CS::Errors::throwExceptionWithTypeMismatch(innerType, type());
+				}
+
+				casteValue = cast(vectorValues);
+			}
+			else
+			{
+				CS::Errors::throwExceptionWithTypeMismatch(vectorType, type());
+			}
+		}
+
+		return casteValue;
+	}
+
+	std::string toString(VectorType aValue) 
+	{ 
+		std::string string;
+
+		if (!aValue.empty())
+		{
+			ValueConverter<VectorType::value_type> valueConverter;
+			auto valuesAmount = aValue.size();
+
+			for (auto& value : aValue)
+			{
+				string.append(valueConverter.toString(value));
+				if (--valuesAmount != 0) 
+				{
+					string.append(CSTypeDefines::csContainerValuesDelimiter);
+				}
+			}
+		}
+
+		return string;
+	}
+
+	std::string toTyped(VectorType aValue) 
+	{ 
+		ValueConverter<VectorType::value_type> valueConverter;
+		std::string formatedType = CS::TypeHelper::formatType({ type(), valueConverter.type() });
+		return CS::TypeHelper::typifyValue(std::move(formatedType), toString(aValue));
+	}
+};
 #endif // !__CS_VALUE_CONVERTER_H__

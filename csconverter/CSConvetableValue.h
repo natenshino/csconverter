@@ -19,7 +19,7 @@ struct ConvertableValue : public IConvertableValue
 	void setValue(const std::string& aValue) override
 	{
 		ValueConverter<Type> converter;
-		*valuePointer = converter.castTyped(aValue);
+		*valuePointer = std::move(converter.castTyped(aValue));
 	};
 
 	std::string asString() override
@@ -52,7 +52,7 @@ struct ConvertableValue<MapType, CS::TypeHelper::isMap<MapType>> : public IConve
 			{
 				if (mapType == CSTypeDefines::csMapType)
 				{
-					auto [keyType, valueType] = CS::DataHelper::splitTwoValues(mapInnerType, CSTypeDefines::csMapKeyValueDelimiter);
+					auto [keyType, valueType] = CS::DataHelper::splitTwoValues(mapInnerType, CSTypeDefines::csContainerValuesDelimiter);
 					if (!keyConverter.typeOf(keyType))
 					{
 						CS::Errors::throwExceptionWithTypeMismatch(keyType, keyConverter.type());
@@ -66,7 +66,7 @@ struct ConvertableValue<MapType, CS::TypeHelper::isMap<MapType>> : public IConve
 					auto mapEntries = CS::DataHelper::splitString(mapValues, CSTypeDefines::csMapValueDelimiter);
 					for (const auto& keyValue : mapEntries)
 					{
-						const auto [key, value] = CS::DataHelper::splitTwoValues(keyValue, CSTypeDefines::csMapKeyValueDelimiter);
+						const auto [key, value] = CS::DataHelper::splitTwoValues(keyValue, CSTypeDefines::csContainerValuesDelimiter);
 						map.emplace(keyConverter.cast(key), valueConverter.cast(value));
 					}
 				}
@@ -95,7 +95,7 @@ struct ConvertableValue<MapType, CS::TypeHelper::isMap<MapType>> : public IConve
 
 		for (auto& [key, value] : map)
 		{
-			string += keyConverter.toString(key) + CSTypeDefines::csMapKeyValueDelimiter + valueConverter.toString(value);
+			string += keyConverter.toString(key) + CSTypeDefines::csContainerValuesDelimiter + valueConverter.toString(value);
 			if (--valuesAmount != 0)
 			{
 				string += CSTypeDefines::csMapValueDelimiter;
