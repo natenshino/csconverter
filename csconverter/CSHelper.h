@@ -17,8 +17,8 @@ namespace CSTypeDefines
 
     const std::string csTypeDelimiter = "$";
 
-    const std::string csMapKeyValueDelimiter = ":";
-    const std::string csMapValueDelimiter = ",";
+    const std::string csMapKeyValueDelimiter = "^";
+    const std::string csMapValueDelimiter = "#";
 
     const std::string csValueDelimiter = "|";
 };
@@ -75,19 +75,59 @@ struct CS
             return "Undefined";
         }
 
-        static std::string typifyValue(const std::string& aType, const std::string& aValue)
+        static std::string typifyValue(const std::string& aType, std::string&& aValue)
         {
             std::string typifyedValue;
             typifyedValue.append(aType);
             typifyedValue.append(CSTypeDefines::csTypeDelimiter);
-            typifyedValue.append(aValue);
+            typifyedValue.append(std::forward<std::string>(aValue));
 
             return typifyedValue;
         }
 
-        static bool checkType(const std::string& aLeft, const std::string& aRight)
+        static std::string typifyValue(std::string&& aType, std::string&& aValue)
         {
-            return aLeft == aRight;
+            std::string typifyedValue;
+            typifyedValue.append(std::forward<std::string>(aType));
+            typifyedValue.append(CSTypeDefines::csTypeDelimiter);
+            typifyedValue.append(std::forward<std::string>(aValue));
+
+            return typifyedValue;
+        }
+
+        static std::string formatType(const std::vector<std::string>& aTypes)
+        {
+            std::string formatedType;
+            auto typesCount = aTypes.size();
+            for (const auto& type : aTypes)
+            {
+                formatedType.append(type);
+                if (--typesCount != 0)
+                {
+                    formatedType.append(CSTypeDefines::csTypeDelimiter);
+                }
+            }
+
+            return formatedType;
+        }
+
+        static std::string formatContainerTypes(const std::string& aType, const std::vector<std::string>& aInnerTypes)
+        {
+            std::string innerTyeps;
+            innerTyeps.append(aType);
+            innerTyeps.append(CSTypeDefines::csTypeDelimiter);
+            auto typesCount = aInnerTypes.size();
+            for (auto& innerType : aInnerTypes)
+            {
+                innerTyeps.append(innerType);
+                if (--typesCount != 0)
+                {
+                    innerTyeps.append(CSTypeDefines::csMapKeyValueDelimiter);
+                }
+            }
+            innerTyeps.append(CSTypeDefines::csTypeDelimiter);
+
+            return innerTyeps;
         }
     };
 
@@ -110,10 +150,10 @@ struct CS
             return result;
         }
 
-        static std::pair<std::string, std::string> splitToTypeAndValue(const std::string& aStr)
+        static std::pair<std::string, std::string> splitTwoValues(const std::string& aStr, const std::string& aDelimiter)
         {
-            auto splited = splitString(aStr, CSTypeDefines::csTypeDelimiter);
-            if (splited.size() > 2)
+            auto splited = splitString(aStr, aDelimiter);
+            if (splited.size() == 2)
             {
                 return { splited[0], splited[1] };
             }
@@ -128,12 +168,16 @@ struct CS
         {
             std::string usedFullType = CS::TypeHelper::tryGetFullType(aTypeUsed);
             std::string requiredFullType = CS::TypeHelper::tryGetFullType(aTypeUsed);
-            std::runtime_error("Type mismatch. Trying to convert from " + usedFullType + " to " + requiredFullType);
+            std::string errorMessage = "Type mismatch. Trying to convert from " + usedFullType + " to " + requiredFullType;
+
+            throw std::runtime_error(errorMessage);
         }
 
         static void throwExceptionTypeRedefinition(const std::string& aKeyWrited)
         {
-            std::runtime_error("Type Redefinition. Trying to write " + aKeyWrited + " when already defined.");
+            std::string errorMessage = "Type Redefinition. Trying to write " + aKeyWrited + " when already defined.";
+
+            throw std::runtime_error(errorMessage);
         }
     };
 
