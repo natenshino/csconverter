@@ -13,9 +13,11 @@ struct IConvertableValue
 template <typename Type, typename TypeDefiniton = void>
 struct ConvertableValue : public IConvertableValue
 {
+private:
 	Type* valuePointer;
-	ConvertableValue(Type* aValuePtr) : valuePointer(aValuePtr) {};
 
+public:
+	ConvertableValue(Type* aValuePtr) : valuePointer(aValuePtr) {};
 	void setValue(const std::string& aValue) override
 	{
 		ValueConverter<Type> converter;
@@ -32,12 +34,18 @@ struct ConvertableValue : public IConvertableValue
 template<typename MapType>
 struct ConvertableValue<MapType, CS::TypeHelper::isMap<MapType>> : public IConvertableValue
 {
+private:
 	MapType* valuePointer;
+
+public:
+	using KeyType = typename MapType::key_type;
+	using ValueType = typename MapType::mapped_type;
+
 	ConvertableValue(MapType* aValuePtr) : valuePointer(aValuePtr) {}
 	void setValue(const std::string& aValue) override
 	{
-		ValueConverter<MapType::key_type> keyConverter;
-		ValueConverter<MapType::mapped_type> valueConverter;
+		ValueConverter<KeyType> keyConverter;
+		ValueConverter<ValueType> valueConverter;
 
 		MapType& map = *valuePointer;
 
@@ -82,8 +90,8 @@ struct ConvertableValue<MapType, CS::TypeHelper::isMap<MapType>> : public IConve
 	{
 		std::string string;
 
-		ValueConverter<MapType::key_type> keyConverter;
-		ValueConverter<MapType::mapped_type> valueConverter;
+		ValueConverter<KeyType> keyConverter;
+		ValueConverter<ValueType> valueConverter;
 
 		MapType& map = *valuePointer;
 		auto valuesAmount = map.size();

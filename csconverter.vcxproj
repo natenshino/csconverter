@@ -133,6 +133,12 @@
   <ItemGroup>
     <ClCompile Include="main.cpp" />
   </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="csconverter\CSConvertableStruct.h" />
+    <ClInclude Include="csconverter\CSConvetableValue.h" />
+    <ClInclude Include="csconverter\CSHelper.h" />
+    <ClInclude Include="csconverter\CSValueConverter.h" />
+  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>
