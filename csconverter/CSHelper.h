@@ -19,6 +19,8 @@ namespace CSTypeDefines
 
     const std::string csMapKeyValueDelimiter = ":";
     const std::string csMapValueDelimiter = ",";
+
+    const std::string csValueDelimiter = "|";
 };
 
 struct CS

@@ -43,7 +43,7 @@ public:
 
 	void convertLineSaveToObject(const std::string& aLineSave)
 	{
-		auto splitedProgress = CS::DataHelper::splitString(aLineSave, CSTypeDefines::csTypeDelimiter);
+		auto splitedProgress = CS::DataHelper::splitString(aLineSave, CSTypeDefines::csValueDelimiter);
 		std::reverse(splitedProgress.begin(), splitedProgress.end());
 
 		for (auto& [key, valueVar] : keyValue)
@@ -63,7 +63,7 @@ public:
 			string += valueVar->asString();
 			if (--keysAmount != 0)
 			{
-				string += CSTypeDefines::csTypeDelimiter;
+				string += CSTypeDefines::csValueDelimiter;
 			}
 		}
 		return string;
