@@ -157,7 +157,7 @@ struct ValueConverter<EnumType, CS::TypeHelper::isEnum<EnumType>> : public IValu
 {
 	using EnumUnderlyingType = typename std::underlying_type<EnumType>::type;
 
-	const std::string& type() override { return CSTypeDefines::csFloatingType; }
+	const std::string& type() override { return CSTypeDefines::csIntegralType; }
 
 	EnumType cast(const std::string& aValue)
 	{
