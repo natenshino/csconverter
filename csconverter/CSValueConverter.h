@@ -41,8 +41,8 @@ struct ValueConverter<StringType, CS::TypeHelper::isSame<StringType, std::string
 		return castedValue;
 	}
 
-	std::string toString(StringType aValue) { return aValue; }
-	std::string toTyped(StringType aValue) { return CS::TypeHelper::typifyValue(type(), toString(aValue)); };
+	std::string toString(const StringType& aValue) { return aValue; }
+	std::string toTyped(const StringType& aValue) { return CS::TypeHelper::typifyValue(type(), toString(aValue)); };
 };
 
 // @ INTEGRAL CONVERTER @ 
@@ -77,8 +77,8 @@ struct ValueConverter<IntegralType, CS::TypeHelper::isIntergal<IntegralType>> : 
 		return castedValue;
 	}
 
-	std::string toString(IntegralType aValue) { return std::to_string(aValue); }
-	std::string toTyped(IntegralType aValue) { return CS::TypeHelper::typifyValue(type(), toString(aValue)); };
+	std::string toString(const IntegralType& aValue) { return std::to_string(aValue); }
+	std::string toTyped(const IntegralType& aValue) { return CS::TypeHelper::typifyValue(type(), toString(aValue)); };
 };
 
 // @ FLOATING CONVERTER @ 
@@ -113,8 +113,8 @@ struct ValueConverter<FloatingType, CS::TypeHelper::isFloating<FloatingType>> : 
 		return castedValue;
 	}
 
-	std::string toString(FloatingType aValue) { return std::to_string(aValue); }
-	std::string toStringTyped(FloatingType aValue) { return CS::TypeHelper::typifyValue(type(), aValue); }
+	std::string toString(const FloatingType& aValue) { return std::to_string(aValue); }
+	std::string toStringTyped(const FloatingType& aValue) { return CS::TypeHelper::typifyValue(type(), aValue); }
 };
 
 // @ BOOL CONVERTER @ 
@@ -126,7 +126,7 @@ struct ValueConverter<BoolType, CS::TypeHelper::isSame<BoolType, bool>> : public
 	
 	BoolType cast(const std::string& aValue)
 	{
-		return aValue = aValue == "+" ? true : false;
+		return aValue == "+" ? true : false;
 	}
 
 	BoolType castTyped(const std::string& aValue)
@@ -146,8 +146,8 @@ struct ValueConverter<BoolType, CS::TypeHelper::isSame<BoolType, bool>> : public
 		return castedValue;
 	}
 	
-	std::string toString(BoolType aValue) { return aValue ? "+" : "-"; }
-	std::string toTyped(BoolType aValue) { return CS::TypeHelper::typifyValue(type(), toString(aValue)); }
+	std::string toString(const BoolType& aValue) { return aValue ? "+" : "-"; }
+	std::string toTyped(const BoolType& aValue) { return CS::TypeHelper::typifyValue(type(), toString(aValue)); }
 };
 
 // @ ENUM CONVERTER @ 
@@ -155,13 +155,13 @@ struct ValueConverter<BoolType, CS::TypeHelper::isSame<BoolType, bool>> : public
 template<typename EnumType>
 struct ValueConverter<EnumType, CS::TypeHelper::isEnum<EnumType>> : public IValueConverter
 {
-private:
+	using EnumUnderlyingType = typename std::underlying_type<EnumType>::type;
+
 	const std::string& type() override { return CSTypeDefines::csFloatingType; }
 
 	EnumType cast(const std::string& aValue)
 	{
-		typedef std::underlying_type<EnumType>::type UnderlyingType;
-		ValueConverter<UnderlyingType> converter;
+		ValueConverter<EnumUnderlyingType> converter;
 		return static_cast<EnumType>(converter.cast(aValue));
 	}
 
@@ -182,8 +182,92 @@ private:
 		return castedValue;
 	}
 
-	std::string toString(EnumType aValue) { return std::to_string(static_cast<std::underlying_type<EnumType>::type>(aValue)); }
-	std::string toTyped(EnumType aValue) { return CS::TypeHelper::typifyValue(type(), toString(aValue)); }
+	std::string toString(const EnumType& aValue) { return std::to_string(static_cast<EnumUnderlyingType>(aValue)); }
+	std::string toTyped(const EnumType& aValue) { return CS::TypeHelper::typifyValue(type(), toString(aValue)); }
 };
 
+// @ VECTOR CONVERTER @ 
+template<typename VectorType>
+struct ValueConverter<VectorType, CS::TypeHelper::isSame<VectorType, std::vector<typename VectorType::value_type>>> : public IValueConverter
+{
+	using ValueType = typename VectorType::value_type;
+
+	const std::string& type() override { return CSTypeDefines::csVectorType; }
+
+	VectorType cast(const std::string& aValue)
+	{
+		VectorType casteValue{};
+		
+		auto splittedValues = CS::DataHelper::splitString(aValue, CSTypeDefines::csContainerValuesDelimiter);
+		if (!splittedValues.empty())
+		{
+			ValueConverter<ValueType> valueConverter;
+			for (auto& value : splittedValues)
+			{
+				casteValue.push_back(valueConverter.cast(value));
+			}
+		}
+
+		return casteValue;
+	}
+
+	VectorType castTyped(const std::string& aValue)
+	{
+		VectorType casteValue{};
+
+		auto splittedValues = CS::DataHelper::splitString(aValue, CSTypeDefines::csTypeDelimiter);
+		if (splittedValues.size() == 3)
+		{
+			const auto& vectorType = splittedValues[0];
+			const auto& innerType = splittedValues[1];
+			const auto& vectorValues = splittedValues[2];
+
+			if (typeOf(vectorType))
+			{
+				ValueConverter<ValueType> valueConverter;
+				if (!valueConverter.typeOf(innerType))
+				{
+					CS::Errors::throwExceptionWithTypeMismatch(innerType, type());
+				}
+
+				casteValue = cast(vectorValues);
+			}
+			else
+			{
+				CS::Errors::throwExceptionWithTypeMismatch(vectorType, type());
+			}
+		}
+
+		return casteValue;
+	}
+
+	std::string toString(const VectorType& aValue) 
+	{ 
+		std::string string;
+
+		if (!aValue.empty())
+		{
+			ValueConverter<ValueType> valueConverter;
+			auto valuesAmount = aValue.size();
+
+			for (auto& value : aValue)
+			{
+				string.append(valueConverter.toString(value));
+				if (--valuesAmount != 0) 
+				{
+					string.append(CSTypeDefines::csContainerValuesDelimiter);
+				}
+			}
+		}
+
+		return string;
+	}
+
+	std::string toTyped(const VectorType& aValue) 
+	{ 
+		ValueConverter<ValueType> valueConverter;
+		std::string formatedType = CS::TypeHelper::formatType({ type(), valueConverter.type() });
+		return CS::TypeHelper::typifyValue(std::move(formatedType), toString(aValue));
+	}
+};
 #endif // !__CS_VALUE_CONVERTER_H__

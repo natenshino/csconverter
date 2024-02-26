@@ -15,12 +15,14 @@ namespace CSTypeDefines
     const std::string csMapType = "m";
     const std::string csBoolType = "b";
 
+    const std::string csVectorType = "v";
+
     const std::string csTypeDelimiter = "$";
-
-    const std::string csMapKeyValueDelimiter = "^";
-    const std::string csMapValueDelimiter = "#";
-
     const std::string csValueDelimiter = "|";
+
+    const std::string csContainerValuesDelimiter = "^";
+
+    const std::string csMapValueDelimiter = "#";
 };
 
 struct CS
@@ -66,6 +68,10 @@ struct CS
             else if (aShortType == CSTypeDefines::csBoolType)
             {
                 return "Bool";
+            }
+            else if (aShortType == CSTypeDefines::csVectorType)
+            {
+                return "Vector";
             }
             else
             {
@@ -122,7 +128,7 @@ struct CS
                 innerTyeps.append(innerType);
                 if (--typesCount != 0)
                 {
-                    innerTyeps.append(CSTypeDefines::csMapKeyValueDelimiter);
+                    innerTyeps.append(CSTypeDefines::csContainerValuesDelimiter);
                 }
             }
             innerTyeps.append(CSTypeDefines::csTypeDelimiter);
