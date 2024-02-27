@@ -4,6 +4,7 @@
 #include <type_traits>
 #include <string>
 #include <map>
+#include <unordered_map>
 #include <vector>
 #include <sstream>
 
@@ -14,8 +15,8 @@ namespace CSTypeDefines
     const std::string csFloatingType = "f";
     const std::string csMapType = "m";
     const std::string csBoolType = "b";
-
     const std::string csVectorType = "v";
+    const std::string csPairType = "p";
 
     const std::string csTypeDelimiter = "$";
     const std::string csValueDelimiter = "|";
@@ -45,7 +46,11 @@ struct CS
         using isSame = typename std::enable_if_t<std::is_same<A, B>::value>;
 
         template<typename T>
-        using isMap = typename std::enable_if_t<std::is_same<typename T::value_type, std::pair<const typename T::key_type, typename T::mapped_type>>::value>;
+        using isMap = typename std::enable_if_t<std::_Is_any_of_v<T, std::map<typename T::key_type, typename T::mapped_type>, 
+            std::unordered_map<typename T::key_type, typename T::mapped_type>>>;
+
+        template<typename T>
+        using isPair = isSame<T, std::pair<typename T::first_type, typename T::second_type>>;
 
         static std::string tryGetFullType(const std::string& aShortType)
         {
@@ -84,9 +89,9 @@ struct CS
         static std::string typifyValue(const std::string& aType, std::string&& aValue)
         {
             std::string typifyedValue;
-            typifyedValue.append(aType);
-            typifyedValue.append(CSTypeDefines::csTypeDelimiter);
-            typifyedValue.append(std::forward<std::string>(aValue));
+            typifyedValue += aType;
+            typifyedValue += CSTypeDefines::csTypeDelimiter;
+            typifyedValue += std::move<>(aValue);
 
             return typifyedValue;
         }
@@ -94,44 +99,46 @@ struct CS
         static std::string typifyValue(std::string&& aType, std::string&& aValue)
         {
             std::string typifyedValue;
-            typifyedValue.append(std::forward<std::string>(aType));
-            typifyedValue.append(CSTypeDefines::csTypeDelimiter);
-            typifyedValue.append(std::forward<std::string>(aValue));
+            typifyedValue += std::move(aType);
+            typifyedValue += CSTypeDefines::csTypeDelimiter;
+            typifyedValue += std::move(aValue);
 
             return typifyedValue;
         }
 
-        static std::string formatType(const std::vector<std::string>& aTypes)
+        static std::string formatType(std::vector<std::string>&& aTypes)
         {
             std::string formatedType;
             auto typesCount = aTypes.size();
-            for (const auto& type : aTypes)
+            for (auto& type : aTypes)
             {
-                formatedType.append(type);
+                formatedType += std::move(type);
                 if (--typesCount != 0)
                 {
-                    formatedType.append(CSTypeDefines::csTypeDelimiter);
+                    formatedType += CSTypeDefines::csTypeDelimiter;
                 }
             }
 
             return formatedType;
         }
 
-        static std::string formatContainerTypes(const std::string& aType, const std::vector<std::string>& aInnerTypes)
+        static std::string formatContainerTypes(const std::string& aType, std::vector<std::string>&& aInnerTypes)
         {
             std::string innerTyeps;
-            innerTyeps.append(aType);
-            innerTyeps.append(CSTypeDefines::csTypeDelimiter);
+            innerTyeps += aType;
+            innerTyeps += CSTypeDefines::csTypeDelimiter;
+
             auto typesCount = aInnerTypes.size();
             for (auto& innerType : aInnerTypes)
             {
-                innerTyeps.append(innerType);
+                innerTyeps += std::move(innerType);
                 if (--typesCount != 0)
                 {
-                    innerTyeps.append(CSTypeDefines::csContainerValuesDelimiter);
+                    innerTyeps += CSTypeDefines::csContainerValuesDelimiter;
                 }
             }
-            innerTyeps.append(CSTypeDefines::csTypeDelimiter);
+            
+            innerTyeps += CSTypeDefines::csTypeDelimiter;
 
             return innerTyeps;
         }
@@ -182,6 +189,20 @@ struct CS
         static void throwExceptionTypeRedefinition(const std::string& aKeyWrited)
         {
             std::string errorMessage = "Type Redefinition. Trying to write " + aKeyWrited + " when already defined.";
+
+            throw std::runtime_error(errorMessage);
+        }
+
+        static void throwExceptionFailedToWrieNullptr(const std::string& aDataKey)
+        {
+            std::string errorMessage = "Bad Pointer. Failed to wrie data to " + aDataKey + ". Reffer to nullptr value";
+
+            throw std::runtime_error(errorMessage);
+        }
+
+        static void throwExceptionFailedToReadNullptr(const std::string& aDataKey)
+        {
+            std::string errorMessage = "Bad Pointer. Failed to read data from " + aDataKey + ". Reffer to nullptr value";
 
             throw std::runtime_error(errorMessage);
         }

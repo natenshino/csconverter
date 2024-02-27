@@ -187,6 +187,7 @@ struct ValueConverter<EnumType, CS::TypeHelper::isEnum<EnumType>> : public IValu
 };
 
 // @ VECTOR CONVERTER @ 
+
 template<typename VectorType>
 struct ValueConverter<VectorType, CS::TypeHelper::isSame<VectorType, std::vector<typename VectorType::value_type>>> : public IValueConverter
 {
@@ -252,10 +253,10 @@ struct ValueConverter<VectorType, CS::TypeHelper::isSame<VectorType, std::vector
 
 			for (auto& value : aValue)
 			{
-				string.append(valueConverter.toString(value));
+				string += valueConverter.toString(value);
 				if (--valuesAmount != 0) 
 				{
-					string.append(CSTypeDefines::csContainerValuesDelimiter);
+					string += CSTypeDefines::csContainerValuesDelimiter;
 				}
 			}
 		}
@@ -270,4 +271,95 @@ struct ValueConverter<VectorType, CS::TypeHelper::isSame<VectorType, std::vector
 		return CS::TypeHelper::typifyValue(std::move(formatedType), toString(aValue));
 	}
 };
+
+// @ PAIR CONVERTER @ 
+
+template<typename PairType>
+struct ValueConverter<PairType, CS::TypeHelper::isPair<PairType>> : public IValueConverter
+{
+	using FirstType = typename PairType::first_type;
+	using SecondType = typename PairType::second_type;
+
+	virtual const std::string& type() override { return CSTypeDefines::csPairType; };
+
+	PairType cast(const std::string& aValue)
+	{
+		const auto [firstValue, secondValue] = CS::DataHelper::splitTwoValues(aValue, CSTypeDefines::csContainerValuesDelimiter);
+
+		ValueConverter<FirstType> firstValueConverter;
+		ValueConverter<SecondType> secondValueConverter;
+
+		return { firstValueConverter.cast(firstValue), secondValueConverter.cast(secondValue) };
+	}
+
+	PairType castTyped(const std::string& aValue)
+	{
+		PairType casteValue{};
+
+		auto splitedMapData = CS::DataHelper::splitString(aValue, CSTypeDefines::csTypeDelimiter);
+		
+		const auto& pairType = splitedMapData[0];
+		const auto& pairInnerType = splitedMapData[1];
+		const auto& pairValue = splitedMapData[2];
+
+		if (!pairType.empty() && !pairInnerType.empty() && !pairValue.empty())
+		{
+			if (pairType == type())
+			{
+				ValueConverter<FirstType> firstValueConverter;
+				ValueConverter<SecondType> secondValueConverter;
+
+				auto [firstType, secondType] = CS::DataHelper::splitTwoValues(pairInnerType, CSTypeDefines::csContainerValuesDelimiter);
+				if (!firstValueConverter.typeOf(firstType))
+				{
+					CS::Errors::throwExceptionWithTypeMismatch(firstType, firstValueConverter.type());
+				}
+
+				if (!secondValueConverter.typeOf(secondType))
+				{
+					CS::Errors::throwExceptionWithTypeMismatch(secondType, secondValueConverter.type());
+				}
+
+				casteValue = cast(pairValue);
+			}
+			else
+			{
+				CS::Errors::throwExceptionWithTypeMismatch(pairType, type());
+			}
+		}
+
+		return casteValue;
+	}
+
+	std::string toString(const PairType& aValue)
+	{
+		std::string string;
+
+		ValueConverter<FirstType> firstValueConverter;
+		ValueConverter<SecondType> secondValueConverter;
+
+		string += firstValueConverter.toString(std::get<FirstType>(aValue));
+		string += secondValueConverter.toString(std::get<SecondType>(aValue));
+
+		return string;
+	}
+
+	std::string toTyped(const PairType& aValue)
+	{
+		ValueConverter<FirstType> firstValueConverter;
+		ValueConverter<SecondType> secondValueConverter;
+
+		auto formatedType = CS::TypeHelper::formatContainerTypes(type(), 
+			{ firstValueConverter.type(), secondValueConverter.type() });
+
+		std::string typedString;
+		typedString += std::move(formatedType);
+		typedString += toString(aValue);
+
+		return typedString;
+	}
+};
+
+// @ PAIR CONVERTER @ 
+
 #endif // !__CS_VALUE_CONVERTER_H__

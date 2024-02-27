@@ -14,20 +14,41 @@ template <typename Type, typename TypeDefiniton = void>
 struct ConvertableValue : public IConvertableValue
 {
 private:
+	std::string valueName;
 	Type* valuePointer;
 
 public:
-	ConvertableValue(Type* aValuePtr) : valuePointer(aValuePtr) {};
+	ConvertableValue(const std::string& aValueName, Type* aValuePtr) 
+		: valueName{aValueName}, 
+		valuePointer{aValuePtr} {};
+
 	void setValue(const std::string& aValue) override
 	{
-		ValueConverter<Type> converter;
-		*valuePointer = std::move(converter.castTyped(aValue));
+		if (valuePointer)
+		{
+			ValueConverter<Type> converter;
+			*valuePointer = std::move(converter.castTyped(aValue));
+		}
+		else
+		{
+			CS::Errors::throwExceptionFailedToWrieNullptr(valueName);
+		}
 	};
 
 	std::string asString() override
 	{
-		ValueConverter<Type> converter;
-		return converter.toTyped(*valuePointer);
+		std::string result;
+		if (valuePointer)
+		{
+			ValueConverter<Type> converter;
+			result = converter.toTyped(*valuePointer);
+		}
+		else
+		{
+			CS::Errors::throwExceptionFailedToReadNullptr(valueName);
+		}
+
+		return result;
 	};
 };
 
@@ -35,13 +56,14 @@ template<typename MapType>
 struct ConvertableValue<MapType, CS::TypeHelper::isMap<MapType>> : public IConvertableValue
 {
 private:
+	std::string valueName;
 	MapType* valuePointer;
 
 public:
 	using KeyType = typename MapType::key_type;
 	using ValueType = typename MapType::mapped_type;
 
-	ConvertableValue(MapType* aValuePtr) : valuePointer(aValuePtr) {}
+	ConvertableValue(const std::string& aValueName, MapType* aValuePtr) : valueName{ aValueName }, valuePointer{ aValuePtr } {}
 	void setValue(const std::string& aValue) override
 	{
 		ValueConverter<KeyType> keyConverter;

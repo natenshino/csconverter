@@ -85,7 +85,21 @@ public:
 		auto findIt = keyValue.find(aKey);
 		if (findIt == keyValue.end())
 		{
-			keyValue.emplace(aKey, new ConvertableValue<Type>(aValuePointer));
+			keyValue.emplace(aKey, new ConvertableValue<Type>(aKey, aValuePointer));
+		}
+		else
+		{
+			CS::Errors::throwExceptionTypeRedefinition(aKey);
+		}
+	}
+
+	template<typename Type>
+	void pushPointer(const std::string& aKey, Type** aValuePointer)
+	{
+		auto findIt = keyValue.find(aKey);
+		if (findIt == keyValue.end())
+		{
+			keyValue.emplace(aKey, new ConvertableValue<Type>(aKey, aValuePointer));
 		}
 		else
 		{
